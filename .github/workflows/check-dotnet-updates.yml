@@ -49,7 +49,7 @@ jobs:
             [int]($_.'channel-version' -split '\.')[0] -ge 3
           }
 
-          $supportedVersions = $allVersions | Where-Object { $_.'support-phase' -eq 'active' }
+          $supportedVersions = $allVersions | Where-Object { $_.'support-phase' -eq 'active' } | Sort-Object { [int]($_.'channel-version' -split '\.')[0] }
           $eolVersions = $allVersions | Where-Object { $_.'support-phase' -eq 'eol' }
 
           Write-Host "Supported .NET versions: $($supportedVersions.'channel-version' -join ', ')"
@@ -270,13 +270,25 @@ jobs:
                 $readmeContent = $readmeContent -replace $readmeVersionPattern, $readmeVersionEntry
                 Write-Host "Updated README.md entry for .NET $major.0.$currentVersionForReadme"
               } else {
-                # Entry doesn't exist - add it after the .NET Framework section
-                # Find the position after ".NET Framework 4.8.1" line
-                $insertPattern = "(\* \.NET Framework 4\.8\.1)(\r?\n)"
-                if ($readmeContent -match $insertPattern) {
-                  $readmeContent = $readmeContent -replace $insertPattern, "`$1`$2    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)`$2"
-                  Write-Host "Added README.md entry for .NET $major.0.$currentVersionForReadme"
+                # Entry doesn't exist - add it after the last .NET X.0 entry, or after .NET Framework 4.8.1
+                # First try to find the last .NET X.0 entry (e.g., "    * .NET 8.0.22 (Runtime, ASP.NET, Desktop)")
+                $lastDotNetPattern = "(\* \.NET \d+\.0\.\d+ \(Runtime, ASP\.NET, Desktop\))(\r?\n)"
+                $matches = [regex]::Matches($readmeContent, $lastDotNetPattern)
+                if ($matches.Count -gt 0) {
+                  # Insert after the last .NET entry
+                  $lastMatch = $matches[$matches.Count - 1]
+                  $insertPattern = [regex]::Escape($lastMatch.Groups[1].Value) + "(\r?\n)"
+                  $readmeContent = $readmeContent -replace $insertPattern, "`$0    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)`$1"
+                  Write-Host "Added README.md entry for .NET $major.0.$currentVersionForReadme (after existing .NET entry)"
                   $updatesFound = $true
+                } else {
+                  # No .NET X.0 entries exist, insert after .NET Framework 4.8.1
+                  $insertPattern = "(\* \.NET Framework 4\.8\.1)(\r?\n)"
+                  if ($readmeContent -match $insertPattern) {
+                    $readmeContent = $readmeContent -replace $insertPattern, "`$1`$2    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)`$2"
+                    Write-Host "Added README.md entry for .NET $major.0.$currentVersionForReadme (after .NET Framework 4.8.1)"
+                    $updatesFound = $true
+                  }
                 }
               }
             } else {
