@@ -1,4 +1,4 @@
-﻿; https://github.com/DomGries/InnoDependencyInstaller
+; https://github.com/DomGries/InnoDependencyInstaller
 
 
 ; requires dxwebsetup.exe (see CodeDependencies.iss)
@@ -68,18 +68,18 @@ begin
   Dependency_AddDotNet48;
   //Dependency_AddDotNet481;
 
-  Dependency_AddNetCore31;
-  Dependency_AddNetCore31Asp;
-  Dependency_AddNetCore31Desktop;
-  Dependency_AddDotNet50;
-  Dependency_AddDotNet50Asp;
-  Dependency_AddDotNet50Desktop;
-  Dependency_AddDotNet60;
-  Dependency_AddDotNet60Asp;
-  Dependency_AddDotNet60Desktop;
-  Dependency_AddDotNet70;
-  Dependency_AddDotNet70Asp;
-  Dependency_AddDotNet70Desktop;
+  //Dependency_AddNetCore31; // Removed: EOL version
+  //Dependency_AddNetCore31Asp; // Removed: EOL version
+  //Dependency_AddNetCore31Desktop; // Removed: EOL version
+  //Dependency_AddDotNet50; // Removed: EOL version
+  //Dependency_AddDotNet50Asp; // Removed: EOL version
+  //Dependency_AddDotNet50Desktop; // Removed: EOL version
+  //Dependency_AddDotNet60; // Removed: EOL version
+  //Dependency_AddDotNet60Asp; // Removed: EOL version
+  //Dependency_AddDotNet60Desktop; // Removed: EOL version
+  //Dependency_AddDotNet70; // Removed: EOL version
+  //Dependency_AddDotNet70Asp; // Removed: EOL version
+  //Dependency_AddDotNet70Desktop; // Removed: EOL version
   Dependency_AddDotNet80;
   Dependency_AddDotNet80Asp;
   Dependency_AddDotNet80Desktop;
