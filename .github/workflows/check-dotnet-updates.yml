@@ -1,0 +1,211 @@
+name: Check .NET Updates
+
+on:
+  schedule:
+    # Run weekly on Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    # Allow manual triggering
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for .NET updates
+        id: check-updates
+        shell: pwsh
+        run: |
+          # Define the .NET versions to check (only currently supported versions)
+          # See https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core for support status
+          # End-of-life versions (.NET Core 3.1, 5.0, 6.0, 7.0) are excluded from automatic updates
+          $versionsToCheck = @(
+            @{ Major = 8; Channel = "8.0" },  # LTS - supported until November 10, 2026
+            @{ Major = 9; Channel = "9.0" }   # STS - supported until May 12, 2026
+          )
+
+          $updatesFound = $false
+          $updateSummary = @()
+          $readmeVersions = @{}
+
+          # Read the current CodeDependencies.iss file
+          $issContent = Get-Content -Path "CodeDependencies.iss" -Raw
+          $readmeContent = Get-Content -Path "README.md" -Raw
+
+          foreach ($version in $versionsToCheck) {
+            $major = $version.Major
+            $channel = $version.Channel
+
+            Write-Host "Checking .NET $channel..."
+
+            # Fetch release info from Microsoft's releases API
+            $releasesUrl = "https://dotnetcli.azureedge.net/dotnet/release-metadata/$channel/releases.json"
+            
+            try {
+              $releases = Invoke-RestMethod -Uri $releasesUrl -ErrorAction Stop
+            } catch {
+              Write-Warning "Failed to fetch releases for .NET $channel : $_"
+              continue
+            }
+
+            # Get the latest stable release (exclude preview/rc versions)
+            $latestRelease = $releases.releases | Where-Object { $_.'release-version' -notmatch '-' } | Select-Object -First 1
+
+            if (-not $latestRelease) {
+              Write-Warning "No stable release found for .NET $channel"
+              continue
+            }
+
+            $latestVersion = $latestRelease.'release-version'
+            $versionParts = $latestVersion -split '\.'
+            $latestPatch = [int]$versionParts[2]
+
+            Write-Host "Latest .NET $channel version: $latestVersion (patch: $latestPatch)"
+
+            # Store version for README update
+            $readmeVersions[$major] = $latestVersion
+
+            # Find current version in CodeDependencies.iss
+            # Pattern example: Dependency_IsNetCoreInstalled('Microsoft.NETCore.App', 8, 0, 11)
+            $currentPatchPattern = "Dependency_IsNetCoreInstalled\('Microsoft\.NETCore\.App',\s*$major,\s*0,\s*(\d+)\)"
+            $currentMatch = [regex]::Match($issContent, $currentPatchPattern)
+
+            if ($currentMatch.Success) {
+              $currentPatch = [int]$currentMatch.Groups[1].Value
+              Write-Host "Current .NET $major.0 patch in file: $currentPatch"
+
+              if ($latestPatch -gt $currentPatch) {
+                Write-Host "Update available: $major.0.$currentPatch -> $major.0.$latestPatch"
+                $updatesFound = $true
+                $updateSummary += ".NET $major.0: $major.0.$currentPatch -> $major.0.$latestPatch"
+
+                # Get download URLs for windows runtimes
+                $runtimeFiles = $latestRelease.runtime.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+                $aspNetFiles = $latestRelease.'aspnetcore-runtime'.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+                $desktopFiles = $latestRelease.'windowsdesktop'.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+
+                $runtimeX86 = ($runtimeFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
+                $runtimeX64 = ($runtimeFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
+                $aspNetX86 = ($aspNetFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
+                $aspNetX64 = ($aspNetFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
+                $desktopX86 = ($desktopFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
+                $desktopX64 = ($desktopFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
+
+                Write-Host "Runtime x86: $runtimeX86"
+                Write-Host "Runtime x64: $runtimeX64"
+                Write-Host "ASP.NET x86: $aspNetX86"
+                Write-Host "ASP.NET x64: $aspNetX64"
+                Write-Host "Desktop x86: $desktopX86"
+                Write-Host "Desktop x64: $desktopX64"
+
+                # Update version checks - Runtime
+                $issContent = $issContent -replace `
+                  "(Dependency_IsNetCoreInstalled\('Microsoft\.NETCore\.App',\s*$major,\s*0,\s*)$currentPatch(\))", `
+                  "`${1}$latestPatch`${2}"
+
+                # Update version checks - ASP.NET
+                $issContent = $issContent -replace `
+                  "(Dependency_IsNetCoreInstalled\('Microsoft\.AspNetCore\.App',\s*$major,\s*0,\s*)$currentPatch(\))", `
+                  "`${1}$latestPatch`${2}"
+
+                # Update version checks - Desktop
+                $issContent = $issContent -replace `
+                  "(Dependency_IsNetCoreInstalled\('Microsoft\.WindowsDesktop\.App',\s*$major,\s*0,\s*)$currentPatch(\))", `
+                  "`${1}$latestPatch`${2}"
+
+                # Update title strings
+                $issContent = $issContent -replace `
+                  "('\.NET Runtime $major\.0\.)$currentPatch(')", `
+                  "`${1}$latestPatch`${2}"
+                $issContent = $issContent -replace `
+                  "('ASP\.NET Core Runtime $major\.0\.)$currentPatch(')", `
+                  "`${1}$latestPatch`${2}"
+                $issContent = $issContent -replace `
+                  "('\.NET Desktop Runtime $major\.0\.)$currentPatch(')", `
+                  "`${1}$latestPatch`${2}"
+
+                # Update URLs if we have them
+                if ($runtimeX86 -and $runtimeX64) {
+                  $issContent = $issContent -replace `
+                    "https://[^']+dotnet-runtime-$major\.0\.$currentPatch-win-x86\.exe", `
+                    $runtimeX86
+                  $issContent = $issContent -replace `
+                    "https://[^']+dotnet-runtime-$major\.0\.$currentPatch-win-x64\.exe", `
+                    $runtimeX64
+                }
+
+                if ($aspNetX86 -and $aspNetX64) {
+                  $issContent = $issContent -replace `
+                    "https://[^']+aspnetcore-runtime-$major\.0\.$currentPatch-win-x86\.exe", `
+                    $aspNetX86
+                  $issContent = $issContent -replace `
+                    "https://[^']+aspnetcore-runtime-$major\.0\.$currentPatch-win-x64\.exe", `
+                    $aspNetX64
+                }
+
+                if ($desktopX86 -and $desktopX64) {
+                  $issContent = $issContent -replace `
+                    "https://[^']+windowsdesktop-runtime-$major\.0\.$currentPatch-win-x86\.exe", `
+                    $desktopX86
+                  $issContent = $issContent -replace `
+                    "https://[^']+windowsdesktop-runtime-$major\.0\.$currentPatch-win-x64\.exe", `
+                    $desktopX64
+                }
+
+                # Update README with new version
+                # Format: "* .NET 8.0.22 (Runtime, ASP.NET, Desktop)"
+                $readmeContent = $readmeContent -replace `
+                  "(\* \.NET $major\.0\.)(\d+)( \(Runtime, ASP\.NET, Desktop\))", `
+                  "`${1}$latestPatch`${3}"
+              } else {
+                Write-Host ".NET $major.0 is up to date"
+              }
+            } else {
+              Write-Warning "Could not find .NET $major.0 version pattern in CodeDependencies.iss"
+            }
+          }
+
+          if ($updatesFound) {
+            # Write the updated content back to the files
+            Set-Content -Path "CodeDependencies.iss" -Value $issContent -NoNewline
+            Set-Content -Path "README.md" -Value $readmeContent -NoNewline
+
+            # Set outputs for the next step
+            $summaryText = $updateSummary -join ", "
+            "updates_found=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "summary=$summaryText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Updates found: $summaryText"
+          } else {
+            "updates_found=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "No updates found"
+          }
+
+      - name: Create Pull Request
+        if: steps.check-updates.outputs.updates_found == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update .NET dependencies: ${{ steps.check-updates.outputs.summary }}"
+          title: "Update .NET dependencies: ${{ steps.check-updates.outputs.summary }}"
+          body: |
+            This PR updates the .NET runtime dependencies to their latest patch versions.
+
+            ## Updates
+            ${{ steps.check-updates.outputs.summary }}
+
+            Both `CodeDependencies.iss` and `README.md` have been updated with the new versions.
+
+            > **Note:** Only supported .NET versions (.NET 8.0 LTS and .NET 9.0 STS) are automatically updated.
+            > End-of-life versions (.NET Core 3.1, 5.0, 6.0, 7.0) are not updated by this workflow.
+
+            ---
+            *This PR was automatically created by the Check .NET Updates workflow.*
+          branch: update-dotnet-dependencies
+          delete-branch: true
+          labels: dependencies, automated
