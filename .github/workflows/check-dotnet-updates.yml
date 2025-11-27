@@ -101,16 +101,13 @@ jobs:
               # Remove from README.md
               $readmeContent = $readmeContent -replace $readmePattern, ""
 
-              # Comment out calls in ExampleSetup.iss (if not already commented)
+              # Remove EOL version calls from ExampleSetup.iss entirely (including commented ones)
               $exampleSetupContent = $exampleSetupContent -replace `
-                "(?m)^(\s*)(?!//)Dependency_Add${procNameBase};", `
-                "`${1}//Dependency_Add${procNameBase}; // Removed: EOL version"
+                "(?m)^\s*(?://)?Dependency_Add${procNameBase};.*\r?\n", ""
               $exampleSetupContent = $exampleSetupContent -replace `
-                "(?m)^(\s*)(?!//)Dependency_Add${procNameBase}Asp;", `
-                "`${1}//Dependency_Add${procNameBase}Asp; // Removed: EOL version"
+                "(?m)^\s*(?://)?Dependency_Add${procNameBase}Asp;.*\r?\n", ""
               $exampleSetupContent = $exampleSetupContent -replace `
-                "(?m)^(\s*)(?!//)Dependency_Add${procNameBase}Desktop;", `
-                "`${1}//Dependency_Add${procNameBase}Desktop; // Removed: EOL version"
+                "(?m)^\s*(?://)?Dependency_Add${procNameBase}Desktop;.*\r?\n", ""
 
               Write-Host "Removed $versionLabel from CodeDependencies.iss, README.md, and ExampleSetup.iss"
             } else {
@@ -257,14 +254,30 @@ jobs:
                     $desktopX64
                 }
 
-                # Update README with new version
-                # Format: "* .NET 8.0 (Runtime, ASP.NET, Desktop)" -> "* .NET 8.0.22 (Runtime, ASP.NET, Desktop)"
-                # $latestPatch contains just the patch number (e.g., 22), result will be "8.0.22"
-                $readmeContent = $readmeContent -replace `
-                  "(\* \.NET $major\.0)(\.\d+)?( \(Runtime, ASP\.NET, Desktop\))", `
-                  "`${1}.$latestPatch`${3}"
               } else {
                 Write-Host ".NET $major.0 is up to date"
+              }
+
+              # Always ensure README has the correct entry for this supported version
+              # Use the current patch version (either updated or existing)
+              $currentVersionForReadme = if ($latestPatch -gt $currentPatch) { $latestPatch } else { $currentPatch }
+              $readmeVersionEntry = "`n    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)"
+              # Pattern matches the entire line including any leading whitespace after a newline
+              $readmeVersionPattern = "(\r?\n)\s*\* \.NET $major\.0(\.\d+)? \(Runtime, ASP\.NET, Desktop\)"
+              
+              if ($readmeContent -match $readmeVersionPattern) {
+                # Entry exists - update it to ensure correct formatting and version
+                $readmeContent = $readmeContent -replace $readmeVersionPattern, $readmeVersionEntry
+                Write-Host "Updated README.md entry for .NET $major.0.$currentVersionForReadme"
+              } else {
+                # Entry doesn't exist - add it after the .NET Framework section
+                # Find the position after ".NET Framework 4.8.1" line
+                $insertPattern = "(\* \.NET Framework 4\.8\.1)(\r?\n)"
+                if ($readmeContent -match $insertPattern) {
+                  $readmeContent = $readmeContent -replace $insertPattern, "`$1`$2    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)`$2"
+                  Write-Host "Added README.md entry for .NET $major.0.$currentVersionForReadme"
+                  $updatesFound = $true
+                }
               }
             } else {
               Write-Host ".NET $major.0 not found in CodeDependencies.iss - may need to be added"
@@ -311,7 +324,7 @@ jobs:
             The following files have been updated:
             - `CodeDependencies.iss` - Updated versions and removed EOL procedures
             - `README.md` - Updated version documentation and removed EOL entries
-            - `ExampleSetup.iss` - Commented out EOL version function calls
+            - `ExampleSetup.iss` - Removed EOL version function calls
 
             > **Note:** Only actively supported .NET versions are maintained.
             > Version support status is determined dynamically from Microsoft's releases-index.json.
