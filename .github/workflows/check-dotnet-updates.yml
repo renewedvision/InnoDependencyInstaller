@@ -30,6 +30,9 @@ jobs:
             @{ Major = 9; Channel = "9.0" }   # STS - supported until May 12, 2026
           )
 
+          # Base URL for Microsoft's .NET release metadata API
+          $apiBaseUrl = "https://dotnetcli.azureedge.net/dotnet/release-metadata"
+
           $updatesFound = $false
           $updateSummary = @()
           $readmeVersions = @{}
@@ -45,7 +48,7 @@ jobs:
             Write-Host "Checking .NET $channel..."
 
             # Fetch release info from Microsoft's releases API
-            $releasesUrl = "https://dotnetcli.azureedge.net/dotnet/release-metadata/$channel/releases.json"
+            $releasesUrl = "$apiBaseUrl/$channel/releases.json"
             
             try {
               $releases = Invoke-RestMethod -Uri $releasesUrl -ErrorAction Stop
@@ -55,7 +58,11 @@ jobs:
             }
 
             # Get the latest stable release (exclude preview/rc versions)
-            $latestRelease = $releases.releases | Where-Object { $_.'release-version' -notmatch '-' } | Select-Object -First 1
+            # Sort by release-date descending to ensure we get the most recent release
+            $latestRelease = $releases.releases | 
+              Where-Object { $_.'release-version' -notmatch '-' } | 
+              Sort-Object { [DateTime]$_.'release-date' } -Descending | 
+              Select-Object -First 1
 
             if (-not $latestRelease) {
               Write-Warning "No stable release found for .NET $channel"
@@ -85,10 +92,28 @@ jobs:
                 $updatesFound = $true
                 $updateSummary += ".NET $major.0: $major.0.$currentPatch -> $major.0.$latestPatch"
 
-                # Get download URLs for windows runtimes
-                $runtimeFiles = $latestRelease.runtime.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
-                $aspNetFiles = $latestRelease.'aspnetcore-runtime'.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
-                $desktopFiles = $latestRelease.'windowsdesktop'.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+                # Get download URLs for windows runtimes with null checks
+                $runtimeFiles = @()
+                $aspNetFiles = @()
+                $desktopFiles = @()
+                
+                if ($latestRelease.runtime -and $latestRelease.runtime.files) {
+                  $runtimeFiles = $latestRelease.runtime.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+                } else {
+                  Write-Warning ".NET $channel runtime files not found in API response"
+                }
+                
+                if ($latestRelease.'aspnetcore-runtime' -and $latestRelease.'aspnetcore-runtime'.files) {
+                  $aspNetFiles = $latestRelease.'aspnetcore-runtime'.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+                } else {
+                  Write-Warning ".NET $channel ASP.NET Core runtime files not found in API response"
+                }
+                
+                if ($latestRelease.'windowsdesktop' -and $latestRelease.'windowsdesktop'.files) {
+                  $desktopFiles = $latestRelease.'windowsdesktop'.files | Where-Object { $_.name -match "win-(x86|x64)\.exe$" }
+                } else {
+                  Write-Warning ".NET $channel Windows Desktop runtime files not found in API response"
+                }
 
                 $runtimeX86 = ($runtimeFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
                 $runtimeX64 = ($runtimeFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
@@ -173,8 +198,9 @@ jobs:
 
           if ($updatesFound) {
             # Write the updated content back to the files
-            Set-Content -Path "CodeDependencies.iss" -Value $issContent -NoNewline
-            Set-Content -Path "README.md" -Value $readmeContent -NoNewline
+            # Use Out-File with -Encoding to preserve file format
+            [System.IO.File]::WriteAllText("CodeDependencies.iss", $issContent)
+            [System.IO.File]::WriteAllText("README.md", $readmeContent)
 
             # Set outputs for the next step
             $summaryText = $updateSummary -join ", "
