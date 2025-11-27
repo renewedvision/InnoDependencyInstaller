@@ -55,6 +55,69 @@ jobs:
           Write-Host "Supported .NET versions: $($supportedVersions.'channel-version' -join ', ')"
           Write-Host "End-of-life .NET versions: $($eolVersions.'channel-version' -join ', ')"
 
+          # Read ExampleSetup.iss file for EOL version removal
+          $exampleSetupContent = Get-Content -Path "ExampleSetup.iss" -Raw
+          $removedVersions = @()
+
+          # Process EOL versions - remove from code and documentation
+          foreach ($versionInfo in $eolVersions) {
+            $channel = $versionInfo.'channel-version'
+            $major = [int]($channel -split '\.')[0]
+            $minor = [int]($channel -split '\.')[1]
+
+            Write-Host "`nProcessing EOL .NET $channel for removal..."
+
+            # Determine the procedure name patterns based on version
+            # .NET Core 3.1 uses "NetCore31", .NET 5+ uses "DotNet{major}0"
+            if ($major -eq 3 -and $minor -eq 1) {
+              $procNameBase = "NetCore31"
+              $readmePattern = "\* \.NET Core 3\.1 \(Runtime, ASP\.NET, Desktop\)\r?\n?"
+              $versionLabel = ".NET Core 3.1"
+            } else {
+              $procNameBase = "DotNet${major}0"
+              $readmePattern = "\* \.NET ${major}\.0(\.\d+)? \(Runtime, ASP\.NET, Desktop\)\r?\n?"
+              $versionLabel = ".NET ${major}.0"
+            }
+
+            # Check if procedures exist in CodeDependencies.iss
+            $runtimeProcPattern = "procedure Dependency_Add${procNameBase};"
+            if ($issContent -match [regex]::Escape($runtimeProcPattern)) {
+              Write-Host "Found $versionLabel procedures in CodeDependencies.iss - removing..."
+              $updatesFound = $true
+              $removedVersions += $versionLabel
+
+              # Remove Runtime procedure - matches from "procedure Dependency_Add{Name};" to the next "procedure" or "end;"
+              $issContent = $issContent -replace `
+                "(?s)procedure Dependency_Add${procNameBase};.*?end;\r?\n\r?\n", ""
+
+              # Remove ASP.NET procedure
+              $issContent = $issContent -replace `
+                "(?s)procedure Dependency_Add${procNameBase}Asp;.*?end;\r?\n\r?\n", ""
+
+              # Remove Desktop procedure
+              $issContent = $issContent -replace `
+                "(?s)procedure Dependency_Add${procNameBase}Desktop;.*?end;\r?\n\r?\n", ""
+
+              # Remove from README.md
+              $readmeContent = $readmeContent -replace $readmePattern, ""
+
+              # Comment out calls in ExampleSetup.iss (if not already commented)
+              $exampleSetupContent = $exampleSetupContent -replace `
+                "(?m)^(\s*)(?!//)Dependency_Add${procNameBase};", `
+                "`${1}//Dependency_Add${procNameBase}; // Removed: EOL version"
+              $exampleSetupContent = $exampleSetupContent -replace `
+                "(?m)^(\s*)(?!//)Dependency_Add${procNameBase}Asp;", `
+                "`${1}//Dependency_Add${procNameBase}Asp; // Removed: EOL version"
+              $exampleSetupContent = $exampleSetupContent -replace `
+                "(?m)^(\s*)(?!//)Dependency_Add${procNameBase}Desktop;", `
+                "`${1}//Dependency_Add${procNameBase}Desktop; // Removed: EOL version"
+
+              Write-Host "Removed $versionLabel from CodeDependencies.iss, README.md, and ExampleSetup.iss"
+            } else {
+              Write-Host "$versionLabel not found in CodeDependencies.iss - already removed or not present"
+            }
+          }
+
           # Process each supported version
           foreach ($versionInfo in $supportedVersions) {
             $channel = $versionInfo.'channel-version'
@@ -212,12 +275,18 @@ jobs:
             # Write the updated content back to the files
             [System.IO.File]::WriteAllText("CodeDependencies.iss", $issContent)
             [System.IO.File]::WriteAllText("README.md", $readmeContent)
+            [System.IO.File]::WriteAllText("ExampleSetup.iss", $exampleSetupContent)
 
             # Set outputs for the next step
             $summaryText = $updateSummary -join ", "
+            $removedText = $removedVersions -join ", "
             "updates_found=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             "summary=$summaryText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "removed=$removedText" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             Write-Host "Updates found: $summaryText"
+            if ($removedVersions.Count -gt 0) {
+              Write-Host "EOL versions removed: $removedText"
+            }
           } else {
             "updates_found=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
             Write-Host "No updates found"
@@ -228,18 +297,25 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Update .NET dependencies: ${{ steps.check-updates.outputs.summary }}"
-          title: "Update .NET dependencies: ${{ steps.check-updates.outputs.summary }}"
+          commit-message: "Update .NET dependencies: ${{ steps.check-updates.outputs.summary }}${{ steps.check-updates.outputs.removed && format(' | Removed EOL: {0}', steps.check-updates.outputs.removed) || '' }}"
+          title: "Update .NET dependencies: ${{ steps.check-updates.outputs.summary }}${{ steps.check-updates.outputs.removed && format(' | Removed EOL: {0}', steps.check-updates.outputs.removed) || '' }}"
           body: |
-            This PR updates the .NET runtime dependencies to their latest patch versions.
+            This PR updates the .NET runtime dependencies.
 
             ## Updates
-            ${{ steps.check-updates.outputs.summary }}
+            ${{ steps.check-updates.outputs.summary || 'No version updates' }}
 
-            Both `CodeDependencies.iss` and `README.md` have been updated with the new versions.
+            ## EOL Versions Removed
+            ${{ steps.check-updates.outputs.removed || 'None' }}
 
-            > **Note:** Only actively supported .NET versions are automatically updated.
+            The following files have been updated:
+            - `CodeDependencies.iss` - Updated versions and removed EOL procedures
+            - `README.md` - Updated version documentation and removed EOL entries
+            - `ExampleSetup.iss` - Commented out EOL version function calls
+
+            > **Note:** Only actively supported .NET versions are maintained.
             > Version support status is determined dynamically from Microsoft's releases-index.json.
+            > EOL (end-of-life) versions are automatically removed from the codebase.
 
             ---
             *This PR was automatically created by the Check .NET Updates workflow.*
