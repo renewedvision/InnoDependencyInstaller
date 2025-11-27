@@ -22,34 +22,48 @@ jobs:
         id: check-updates
         shell: pwsh
         run: |
-          # Define the .NET versions to check (only currently supported versions)
-          # See https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core for support status
-          # End-of-life versions (.NET Core 3.1, 5.0, 6.0, 7.0) are excluded from automatic updates
-          $versionsToCheck = @(
-            @{ Major = 8; Channel = "8.0" },  # LTS - supported until November 10, 2026
-            @{ Major = 9; Channel = "9.0" }   # STS - supported until May 12, 2026
-          )
-
           # Base URL for Microsoft's .NET release metadata API
           $apiBaseUrl = "https://dotnetcli.azureedge.net/dotnet/release-metadata"
 
           $updatesFound = $false
           $updateSummary = @()
-          $readmeVersions = @{}
 
           # Read the current CodeDependencies.iss file
           $issContent = Get-Content -Path "CodeDependencies.iss" -Raw
           $readmeContent = Get-Content -Path "README.md" -Raw
 
-          foreach ($version in $versionsToCheck) {
-            $major = $version.Major
-            $channel = $version.Channel
+          # Fetch the releases index to get currently supported versions
+          Write-Host "Fetching .NET releases index..."
+          try {
+            $releasesIndex = Invoke-RestMethod -Uri "$apiBaseUrl/releases-index.json" -ErrorAction Stop
+          } catch {
+            Write-Error "Failed to fetch releases index: $_"
+            exit 1
+          }
 
-            Write-Host "Checking .NET $channel..."
+          # Get all .NET versions from the releases index
+          # - Include .NET Core 3.1 and all .NET 5+ versions
+          # - Exclude legacy .NET Core 1.x and 2.x versions (not supported by this project)
+          $allVersions = $releasesIndex.'releases-index' | Where-Object { 
+            $_.'channel-version' -match '^\d+\.\d+$' -and 
+            [int]($_.'channel-version' -split '\.')[0] -ge 3
+          }
 
-            # Fetch release info from Microsoft's releases API
-            $releasesUrl = "$apiBaseUrl/$channel/releases.json"
-            
+          $supportedVersions = $allVersions | Where-Object { $_.'support-phase' -eq 'active' }
+          $eolVersions = $allVersions | Where-Object { $_.'support-phase' -eq 'eol' }
+
+          Write-Host "Supported .NET versions: $($supportedVersions.'channel-version' -join ', ')"
+          Write-Host "End-of-life .NET versions: $($eolVersions.'channel-version' -join ', ')"
+
+          # Process each supported version
+          foreach ($versionInfo in $supportedVersions) {
+            $channel = $versionInfo.'channel-version'
+            $major = [int]($channel -split '\.')[0]
+
+            Write-Host "`nChecking .NET $channel..."
+
+            # Fetch detailed release info
+            $releasesUrl = $versionInfo.'releases.json'
             try {
               $releases = Invoke-RestMethod -Uri $releasesUrl -ErrorAction Stop
             } catch {
@@ -74,9 +88,6 @@ jobs:
             $latestPatch = [int]$versionParts[2]
 
             Write-Host "Latest .NET $channel version: $latestVersion (patch: $latestPatch)"
-
-            # Store version for README update
-            $readmeVersions[$major] = $latestVersion
 
             # Find current version in CodeDependencies.iss
             # Pattern example: Dependency_IsNetCoreInstalled('Microsoft.NETCore.App', 8, 0, 11)
@@ -184,21 +195,21 @@ jobs:
                 }
 
                 # Update README with new version
-                # Format: "* .NET 8.0.22 (Runtime, ASP.NET, Desktop)"
+                # Format: "* .NET 8.0 (Runtime, ASP.NET, Desktop)" -> "* .NET 8.0.22 (Runtime, ASP.NET, Desktop)"
+                # $latestPatch contains just the patch number (e.g., 22), result will be "8.0.22"
                 $readmeContent = $readmeContent -replace `
-                  "(\* \.NET $major\.0\.)(\d+)( \(Runtime, ASP\.NET, Desktop\))", `
-                  "`${1}$latestPatch`${3}"
+                  "(\* \.NET $major\.0)(\.\d+)?( \(Runtime, ASP\.NET, Desktop\))", `
+                  "`${1}.$latestPatch`${3}"
               } else {
                 Write-Host ".NET $major.0 is up to date"
               }
             } else {
-              Write-Warning "Could not find .NET $major.0 version pattern in CodeDependencies.iss"
+              Write-Host ".NET $major.0 not found in CodeDependencies.iss - may need to be added"
             }
           }
 
           if ($updatesFound) {
             # Write the updated content back to the files
-            # Use Out-File with -Encoding to preserve file format
             [System.IO.File]::WriteAllText("CodeDependencies.iss", $issContent)
             [System.IO.File]::WriteAllText("README.md", $readmeContent)
 
@@ -227,8 +238,8 @@ jobs:
 
             Both `CodeDependencies.iss` and `README.md` have been updated with the new versions.
 
-            > **Note:** Only supported .NET versions (.NET 8.0 LTS and .NET 9.0 STS) are automatically updated.
-            > End-of-life versions (.NET Core 3.1, 5.0, 6.0, 7.0) are not updated by this workflow.
+            > **Note:** Only actively supported .NET versions are automatically updated.
+            > Version support status is determined dynamically from Microsoft's releases-index.json.
 
             ---
             *This PR was automatically created by the Check .NET Updates workflow.*

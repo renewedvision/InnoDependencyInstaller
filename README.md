@@ -74,13 +74,12 @@ If you only deploy 32-bit binaries and dependencies you can also instead just no
     * .NET Framework 4.7.2
     * .NET Framework 4.8
     * .NET Framework 4.8.1
-    * .NET Core 3.1.32 (Runtime, ASP.NET, Desktop) - ⚠️ End of Life
-    * .NET 5.0.17 (Runtime, ASP.NET, Desktop) - ⚠️ End of Life
-    * .NET 6.0.36 (Runtime, ASP.NET, Desktop) - ⚠️ End of Life
-    * .NET 7.0.20 (Runtime, ASP.NET, Desktop) - ⚠️ End of Life
-    * .NET 8.0.22 (Runtime, ASP.NET, Desktop)
-    * .NET 9.0.11 (Runtime, ASP.NET, Desktop)
-    * .NET 10.0.0 (Runtime, ASP.NET, Desktop) - Preview
+    * .NET Core 3.1 (Runtime, ASP.NET, Desktop)
+    * .NET 5.0 (Runtime, ASP.NET, Desktop)
+    * .NET 6.0 (Runtime, ASP.NET, Desktop)
+    * .NET 7.0 (Runtime, ASP.NET, Desktop)
+    * .NET 8.0 (Runtime, ASP.NET, Desktop)
+    * .NET 9.0 (Runtime, ASP.NET, Desktop)
 * C++
     * Visual C++ 2005 Service Pack 1 Redistributable
     * Visual C++ 2008 Service Pack 1 Redistributable
