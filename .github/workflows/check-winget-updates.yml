@@ -123,6 +123,8 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
           commit-message: "Update ${{ steps.check-updates.outputs.summary }}"
           title: "Update ${{ steps.check-updates.outputs.summary }}"
           body: |
