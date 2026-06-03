@@ -672,7 +672,7 @@ begin
   end;
 end;
 
-procedure Dependency_AddVC2015To2022;
+procedure Dependency_AddVC2017To2026;
 var
   Version: String;
   PackedVersion: Int64;
