@@ -99,7 +99,7 @@ Dependency_Components := ''; // disable component gating again
     * Visual C++ 2010 Service Pack 1 Redistributable
     * Visual C++ 2012 Update 4 Redistributable
     * Visual C++ 2013 Update 5 Redistributable
-    * Visual C++ 2015-2022 Redistributable
+    * Visual C++ v14 Redistributable (2015-2026)
 * SQL
     * SQL Server 2008 R2 Service Pack 2 Express
     * SQL Server 2012 Service Pack 4 Express

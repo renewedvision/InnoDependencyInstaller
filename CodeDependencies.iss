@@ -672,7 +672,7 @@ begin
   end;
 end;
 
-procedure Dependency_AddVC2015To2022;
+procedure Dependency_AddVC14;
 var
   Version: String;
   PackedVersion: Int64;
@@ -682,13 +682,16 @@ begin
     Delete(Version, 1, 1);
   end;
   if not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(14, 51, 36231, 0)) < 0) then begin
-    Dependency_Add('vcredist2022' + Dependency_ArchSuffix + '.exe',
+    Dependency_Add('vcredist14' + Dependency_ArchSuffix + '.exe',
       '/passive /norestart',
-      'Visual C++ 2015-2022 Redistributable' + Dependency_ArchTitle,
+      'Visual C++ v14 Redistributable' + Dependency_ArchTitle,
       Dependency_String('https://aka.ms/vc14/vc_redist.x86.exe', 'https://aka.ms/vc14/vc_redist.x64.exe', 'https://aka.ms/vc14/vc_redist.arm64.exe'),
       '', False, False);
   end;
 end;
+
+procedure Dependency_AddVC2015To2019; begin Dependency_AddVC14; end;
+procedure Dependency_AddVC2015To2022; begin Dependency_AddVC14; end;
 
 procedure Dependency_AddDirectX;
 begin

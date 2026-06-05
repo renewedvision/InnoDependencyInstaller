@@ -103,7 +103,7 @@ begin
   //Dependency_ForceX86 := True; // force 32-bit install of next dependencies
   Dependency_AddVC2013;
   //Dependency_ForceX86 := False; // disable forced 32-bit install again
-  Dependency_AddVC2015To2022;
+  Dependency_AddVC14;
 
   //Dependency_AddDirectX;
 
