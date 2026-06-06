@@ -113,6 +113,11 @@ Dependency_Components := ''; // disable component gating again
     * Access Database Engine 2016
 * DirectX End-User Runtime
 * WebView2 Runtime
+* Java
+    * OpenJDK 8 — Eclipse Temurin (x86/x64)
+    * OpenJDK 11, 17, 21, 25 — Microsoft Build of OpenJDK (x64/arm64)
+
+> Java is detected vendor-agnostically. For installing other versions or vendors, call `Dependency_AddJava(Major, Url)` with your own MSI URL (e.g. [Eclipse Temurin](https://adoptium.net)).
 
 ## Credits
 

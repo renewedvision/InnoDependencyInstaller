@@ -120,5 +120,11 @@ begin
 
   Dependency_AddAccessDatabaseEngine2016;
 
+  Dependency_AddJava8;
+  Dependency_AddJava11;
+  Dependency_AddJava17;
+  Dependency_AddJava21;
+  Dependency_AddJava25;
+
   Result := True;
 end;

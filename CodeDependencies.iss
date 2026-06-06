@@ -850,6 +850,63 @@ begin
   end;
 end;
 
+function Dependency_GetJavaMajor: Integer;
+var
+  JavaExe, Line: String;
+  ResultCode, LineIndex, QuotePos: Integer;
+  Output: TExecOutput;
+  Parts: TArrayOfString;
+begin
+  Result := 0;
+
+  // detect whichever java.exe an app would actually use: JAVA_HOME, else PATH
+  JavaExe := GetEnv('JAVA_HOME');
+  if (JavaExe <> '') and FileExists(JavaExe + '\bin\java.exe') then begin
+    JavaExe := JavaExe + '\bin\java.exe';
+  end else begin
+    JavaExe := 'java.exe';
+  end;
+
+  // `java -version` prints to stderr
+  if not ExecAndCaptureOutput(JavaExe, '-version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) or (ResultCode <> 0) then begin
+    exit;
+  end;
+
+  for LineIndex := 0 to Length(Output.StdErr) - 1 do begin
+    Line := Output.StdErr[LineIndex];
+    QuotePos := Pos('version "', Line);
+    if QuotePos > 0 then begin
+      Parts := StringSplit(Copy(Line, QuotePos + 9, Length(Line)), ['.'], stExcludeEmpty);
+      if Length(Parts) > 0 then begin
+        Result := StrToIntDef(Parts[0], 0);
+        if (Result = 1) and (Length(Parts) > 1) then begin
+          Result := StrToIntDef(Parts[1], 0); // legacy "1.8.0_x" -> 8
+        end;
+      end;
+      exit;
+    end;
+  end;
+end;
+
+procedure Dependency_AddJava(const Major: Integer; const URL: String);
+begin
+  // https://learn.microsoft.com/en-us/java/openjdk/download
+  if (URL <> '') and (Dependency_GetJavaMajor < Major) then begin
+    Dependency_Add('openjdk-' + IntToStr(Major) + Dependency_ArchSuffix + '.msi',
+      '/quiet /norestart ADDLOCAL=FeatureMain,FeatureEnvironment,FeatureJavaHome',
+      'OpenJDK ' + IntToStr(Major) + Dependency_ArchTitle,
+      URL,
+      '', False, False);
+  end;
+end;
+
+// Java 8 has no Microsoft build (and is still shipped 32-bit), so it comes from Eclipse Temurin
+procedure Dependency_AddJava8; begin Dependency_AddJava(8, Dependency_String('https://api.adoptium.net/v3/installer/latest/8/ga/windows/x86/jdk/hotspot/normal/eclipse', 'https://api.adoptium.net/v3/installer/latest/8/ga/windows/x64/jdk/hotspot/normal/eclipse', 'https://api.adoptium.net/v3/installer/latest/8/ga/windows/x64/jdk/hotspot/normal/eclipse')); end;
+procedure Dependency_AddJava11; begin Dependency_AddJava(11, Dependency_String('', 'https://aka.ms/download-jdk/microsoft-jdk-11-windows-x64.msi', 'https://aka.ms/download-jdk/microsoft-jdk-11-windows-aarch64.msi')); end;
+procedure Dependency_AddJava17; begin Dependency_AddJava(17, Dependency_String('', 'https://aka.ms/download-jdk/microsoft-jdk-17-windows-x64.msi', 'https://aka.ms/download-jdk/microsoft-jdk-17-windows-aarch64.msi')); end;
+procedure Dependency_AddJava21; begin Dependency_AddJava(21, Dependency_String('', 'https://aka.ms/download-jdk/microsoft-jdk-21-windows-x64.msi', 'https://aka.ms/download-jdk/microsoft-jdk-21-windows-aarch64.msi')); end;
+procedure Dependency_AddJava25; begin Dependency_AddJava(25, Dependency_String('', 'https://aka.ms/download-jdk/microsoft-jdk-25-windows-x64.msi', 'https://aka.ms/download-jdk/microsoft-jdk-25-windows-aarch64.msi')); end;
+
 [Files]
 #ifdef Dependency_Path_DirectX
 Source: "{#Dependency_Path_DirectX}dxwebsetup.exe"; Flags: dontcopy noencryption
