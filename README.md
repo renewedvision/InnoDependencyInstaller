@@ -109,8 +109,10 @@ Dependency_Components := ''; // disable component gating again
     * SQL Server 2019 Express
     * SQL Server 2022 Express
     * SQL Server 2025 Express
-* Access
-    * Access Database Engine 2016
+    * OLE DB Driver 19 for SQL Server
+    * ODBC Driver 18 for SQL Server
+* Access Database Engine 2016
+* Visual Studio 2010 Tools for Office Runtime (VSTO)
 * DirectX End-User Runtime
 * WebView2 Runtime
 * Java

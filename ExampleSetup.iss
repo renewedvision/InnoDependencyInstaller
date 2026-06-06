@@ -115,10 +115,14 @@ begin
   Dependency_AddSql2019Express;
   Dependency_AddSql2022Express;
   Dependency_AddSql2025Express;
+  Dependency_AddSqlOleDb19;
+  Dependency_AddSqlOdbc18;
 
   Dependency_AddWebView2;
 
   Dependency_AddAccessDatabaseEngine2016;
+
+  Dependency_AddVSTORuntime;
 
   Dependency_AddJava8;
   Dependency_AddJava11;

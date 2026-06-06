@@ -826,6 +826,30 @@ begin
   end;
 end;
 
+procedure Dependency_AddSqlOleDb19;
+begin
+  // https://learn.microsoft.com/en-us/sql/connect/oledb/download-oledb-driver-for-sql-server
+  if not RegValueExists(HKLM, 'SOFTWARE\Microsoft\MSOLEDBSQL19', 'InstalledVersion') then begin
+    Dependency_Add('msoledbsql' + Dependency_ArchSuffix + '.msi',
+      '/qn /norestart IACCEPTMSOLEDBSQLLICENSETERMS=YES',
+      'Microsoft OLE DB Driver 19 for SQL Server' + Dependency_ArchTitle,
+      Dependency_String('https://go.microsoft.com/fwlink/?linkid=2364026', 'https://go.microsoft.com/fwlink/?linkid=2364027', 'https://go.microsoft.com/fwlink/?linkid=2364027'),
+      '', False, False);
+  end;
+end;
+
+procedure Dependency_AddSqlOdbc18;
+begin
+  // https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server
+  if not RegKeyExists(HKLM, 'SOFTWARE\ODBC\ODBCINST.INI\ODBC Driver 18 for SQL Server') then begin
+    Dependency_Add('msodbcsql' + Dependency_ArchSuffix + '.msi',
+      '/qn /norestart IACCEPTMSODBCSQLLICENSETERMS=YES',
+      'Microsoft ODBC Driver 18 for SQL Server' + Dependency_ArchTitle,
+      Dependency_String('https://go.microsoft.com/fwlink/?linkid=2358335', 'https://go.microsoft.com/fwlink/?linkid=2358430', 'https://go.microsoft.com/fwlink/?linkid=2358431'),
+      '', False, False);
+  end;
+end;
+
 procedure Dependency_AddWebView2;
 begin
   // https://developer.microsoft.com/en-us/microsoft-edge/webview2
@@ -846,6 +870,18 @@ begin
       '/quiet',
       'Microsoft Access Database Engine 2016' + Dependency_ArchTitle,
       Dependency_String('https://download.microsoft.com/download/3/5/C/35C84C36-661A-44E6-9324-8786B8DBE231/accessdatabaseengine.exe', 'https://download.microsoft.com/download/3/5/C/35C84C36-661A-44E6-9324-8786B8DBE231/accessdatabaseengine_X64.exe', 'https://download.microsoft.com/download/3/5/C/35C84C36-661A-44E6-9324-8786B8DBE231/accessdatabaseengine_X64.exe'),
+      '', False, False);
+  end;
+end;
+
+procedure Dependency_AddVSTORuntime;
+begin
+  // https://learn.microsoft.com/en-us/visualstudio/vsto/how-to-install-the-visual-studio-tools-for-office-runtime-redistributable
+  if not RegKeyExists(HKLM, Dependency_String('SOFTWARE', 'SOFTWARE\WOW6432Node', 'SOFTWARE\WOW6432Node') + '\Microsoft\VSTO Runtime Setup\v4R') then begin
+    Dependency_Add('vstor_redist.exe',
+      '/q /norestart',
+      'Visual Studio 2010 Tools for Office Runtime',
+      'https://download.microsoft.com/download/5/d/2/5d24f8f8-efbb-4b63-aa33-3785e3104713/vstor_redist.exe',
       '', False, False);
   end;
 end;
