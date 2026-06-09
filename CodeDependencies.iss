@@ -59,7 +59,7 @@ end;
 <event('PrepareToInstall')>
 function Dependency_PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  DependencyCount, DependencyIndex, ResultCode: Integer;
+  DependencyCount, DependencyIndex, ActiveCount, ActiveIndex, ResultCode: Integer;
   Retry: Boolean;
   TempValue: String;
 begin
@@ -103,12 +103,21 @@ begin
     end;
 
     if Result = '' then begin
+      ActiveCount := 0;
+      for DependencyIndex := 0 to DependencyCount - 1 do begin
+        if Dependency_IsEntryActive(Dependency_List[DependencyIndex]) then begin
+          ActiveCount := ActiveCount + 1;
+        end;
+      end;
+
+      ActiveIndex := 0;
       for DependencyIndex := 0 to DependencyCount - 1 do begin
         if not Dependency_IsEntryActive(Dependency_List[DependencyIndex]) then begin
           continue;
         end;
+        ActiveIndex := ActiveIndex + 1;
         Dependency_DownloadPage.SetText(Dependency_List[DependencyIndex].Title, '');
-        Dependency_DownloadPage.SetProgress(DependencyIndex + 1, DependencyCount + 1);
+        Dependency_DownloadPage.SetProgress(ActiveIndex, ActiveCount + 1);
 
         while True do begin
           ResultCode := 0;
@@ -133,6 +142,8 @@ begin
               break;
             end else if ResultCode = 3010 then begin // ERROR_SUCCESS_REBOOT_REQUIRED (3010)
               Dependency_NeedToRestart := True;
+              break;
+            end else if ResultCode = 1638 then begin // ERROR_PRODUCT_VERSION (1638)
               break;
             end;
           end;
@@ -808,7 +819,8 @@ end;
 procedure Dependency_AddWebView2;
 begin
   // https://developer.microsoft.com/en-us/microsoft-edge/webview2
-  if not RegValueExists(HKLM, Dependency_String('SOFTWARE', 'SOFTWARE\WOW6432Node', 'SOFTWARE\WOW6432Node') + '\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv') then begin
+  if not (RegValueExists(HKLM, Dependency_String('SOFTWARE', 'SOFTWARE\WOW6432Node', 'SOFTWARE\WOW6432Node') + '\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv')
+    or RegValueExists(HKCU, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}', 'pv')) then begin
     Dependency_Add('MicrosoftEdgeWebview2Setup.exe',
       '/silent /install',
       'WebView2 Runtime',
