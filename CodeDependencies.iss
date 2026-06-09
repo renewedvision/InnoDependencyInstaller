@@ -246,6 +246,15 @@ begin
   Result := Dependency_String(' (x86)', ' (x64)', ' (arm64)');
 end;
 
+function Dependency_PassiveOrQuiet(const Passive, Quiet: String): String;
+begin
+  if WizardSilent then begin
+    Result := Quiet;
+  end else begin
+    Result := Passive;
+  end;
+end;
+
 function Dependency_IsNetCoreInstalled(Runtime: String; Major, Minor, Revision: Word): Boolean;
 var
   Path: String;
@@ -281,7 +290,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet-framework/net35-sp1
   if not IsDotNetInstalled(net35, 1) then begin
     Dependency_Add('dotnetfx35.exe',
-      '/lang:enu /passive /norestart',
+      '/lang:enu ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       '.NET Framework 3.5 Service Pack 1',
       'https://download.microsoft.com/download/2/0/E/20E90413-712F-438C-988E-FDAA79A8AC3D/dotnetfx35.exe',
       '', False, False);
@@ -293,7 +302,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet-framework/net40
   if not IsDotNetInstalled(net4full, 0) then begin
     Dependency_Add('dotNetFx40_Full_setup.exe',
-      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       '.NET Framework 4.0',
       'https://download.microsoft.com/download/1/B/E/1BE39E79-7E39-46A3-96FF-047F95396215/dotNetFx40_Full_setup.exe',
       '', False, False);
@@ -305,7 +314,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet-framework/net452
   if not IsDotNetInstalled(net452, 0) then begin
     Dependency_Add('dotnetfx45.exe',
-      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       '.NET Framework 4.5.2',
       'https://go.microsoft.com/fwlink/?LinkId=397707',
       '', False, False);
@@ -317,7 +326,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet-framework/net462
   if not IsDotNetInstalled(net462, 0) then begin
     Dependency_Add('dotnetfx46.exe',
-      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       '.NET Framework 4.6.2',
       'https://go.microsoft.com/fwlink/?linkid=780596',
       '', False, False);
@@ -329,7 +338,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet-framework/net472
   if not IsDotNetInstalled(net472, 0) then begin
     Dependency_Add('dotnetfx47.exe',
-      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       '.NET Framework 4.7.2',
       'https://go.microsoft.com/fwlink/?LinkId=863262',
       '', False, False);
@@ -341,7 +350,7 @@ begin
     // https://dotnet.microsoft.com/download/dotnet-framework/net48
     if not IsDotNetInstalled(net48, 0) then begin
       Dependency_Add('dotnetfx48.exe',
-        '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+        '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
         '.NET Framework 4.8',
         'https://go.microsoft.com/fwlink/?LinkId=2085155',
         '', False, False);
@@ -353,7 +362,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet-framework/net481
   if not IsDotNetInstalled(net481, 0) then begin
     Dependency_Add('dotnetfx481.exe',
-      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       '.NET Framework 4.8.1',
       'https://go.microsoft.com/fwlink/?LinkId=2203304',
       '', False, False);
@@ -363,7 +372,7 @@ end;
 procedure Dependency_AddNetCore(const Prefix, Title, URL: String);
 begin
   Dependency_Add(Prefix + Dependency_ArchSuffix + '.exe',
-    '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+    '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/quiet') + ' /norestart',
     Title + Dependency_ArchTitle,
     URL,
     '', False, False);
@@ -528,7 +537,7 @@ begin
   // https://dotnet.microsoft.com/download/dotnet
   if not Dependency_IsNetCoreInstalled('Microsoft.AspNetCore.App', Major, 0, Patch) then begin
     Dependency_Add('dotnet' + IntToStr(Major) + '0hosting.exe',
-      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      '/lcid ' + IntToStr(GetUILanguage) + ' ' + Dependency_PassiveOrQuiet('/passive', '/quiet') + ' /norestart',
       'ASP.NET Core ' + IntToStr(Major) + '.0 Hosting Bundle',
       URL,
       '', False, False);
@@ -568,7 +577,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=26999
   if not IsMsiProductInstalled(Dependency_String('{1F4F1D2A-D9DA-32CF-9909-48485DA06DD5}', '{5B75F761-BAC8-33BC-A381-464DDDD813A3}', '{5B75F761-BAC8-33BC-A381-464DDDD813A3}'), PackVersionComponents(10, 0, 40219, 0)) then begin
     Dependency_Add('vcredist2010' + Dependency_ArchSuffix + '.exe',
-      '/passive /norestart',
+      Dependency_PassiveOrQuiet('/passive', '/q') + ' /norestart',
       'Visual C++ 2010 Service Pack 1 Redistributable' + Dependency_ArchTitle,
       Dependency_String('https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe', 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe', 'https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe'),
       '', False, False);
@@ -580,7 +589,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=30679
   if not IsMsiProductInstalled(Dependency_String('{4121ED58-4BD9-3E7B-A8B5-9F8BAAE045B7}', '{EFA6AFA1-738E-3E00-8101-FD03B86B29D1}', '{EFA6AFA1-738E-3E00-8101-FD03B86B29D1}'), PackVersionComponents(11, 0, 61030, 0)) then begin
     Dependency_Add('vcredist2012' + Dependency_ArchSuffix + '.exe',
-      '/passive /norestart',
+      Dependency_PassiveOrQuiet('/passive', '/quiet') + ' /norestart',
       'Visual C++ 2012 Update 4 Redistributable' + Dependency_ArchTitle,
       Dependency_String('https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe', 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe', 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe'),
       '', False, False);
@@ -592,7 +601,7 @@ begin
   // https://support.microsoft.com/en-us/help/4032938
   if not IsMsiProductInstalled(Dependency_String('{B59F5BF1-67C8-3802-8E59-2CE551A39FC5}', '{20400CF0-DE7C-327E-9AE4-F0F38D9085F8}', '{20400CF0-DE7C-327E-9AE4-F0F38D9085F8}'), PackVersionComponents(12, 0, 40664, 0)) then begin
     Dependency_Add('vcredist2013' + Dependency_ArchSuffix + '.exe',
-      '/passive /norestart',
+      Dependency_PassiveOrQuiet('/passive', '/quiet') + ' /norestart',
       'Visual C++ 2013 Update 5 Redistributable' + Dependency_ArchTitle,
       Dependency_String('https://download.visualstudio.microsoft.com/download/pr/10912113/5da66ddebb0ad32ebd4b922fd82e8e25/vcredist_x86.exe', 'https://download.visualstudio.microsoft.com/download/pr/10912041/cee5d6bca2ddbcd039da727bf4acb48a/vcredist_x64.exe', 'https://download.visualstudio.microsoft.com/download/pr/10912041/cee5d6bca2ddbcd039da727bf4acb48a/vcredist_x64.exe'),
       '', False, False);
@@ -610,7 +619,7 @@ begin
   end;
   if not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(14, 51, 36231, 0)) < 0) then begin
     Dependency_Add('vcredist14' + Dependency_ArchSuffix + '.exe',
-      '/passive /norestart',
+      Dependency_PassiveOrQuiet('/passive', '/quiet') + ' /norestart',
       'Visual C++ v14 Redistributable' + Dependency_ArchTitle,
       Dependency_String('https://aka.ms/vc14/vc_redist.x86.exe', 'https://aka.ms/vc14/vc_redist.x64.exe', 'https://aka.ms/vc14/vc_redist.arm64.exe'),
       '', False, False);
@@ -641,7 +650,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=30438
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL10_50.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(10, 50, 4000, 0)) < 0) then begin
     Dependency_Add('sql2008express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2008 R2 Service Pack 2 Express',
       Dependency_String('https://download.microsoft.com/download/0/4/B/04BE03CD-EAF3-4797-9D8D-2E08E316C998/SQLEXPR32_x86_ENU.exe', 'https://download.microsoft.com/download/0/4/B/04BE03CD-EAF3-4797-9D8D-2E08E316C998/SQLEXPR_x64_ENU.exe', 'https://download.microsoft.com/download/0/4/B/04BE03CD-EAF3-4797-9D8D-2E08E316C998/SQLEXPR_x64_ENU.exe'),
       '', False, False);
@@ -656,7 +665,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=56042
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL11.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(11, 0, 7001, 0)) < 0) then begin
     Dependency_Add('sql2012express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2012 Service Pack 4 Express',
       Dependency_String('https://download.microsoft.com/download/B/D/E/BDE8FAD6-33E5-44F6-B714-348F73E602B6/SQLEXPR32_x86_ENU.exe', 'https://download.microsoft.com/download/B/D/E/BDE8FAD6-33E5-44F6-B714-348F73E602B6/SQLEXPR_x64_ENU.exe', 'https://download.microsoft.com/download/B/D/E/BDE8FAD6-33E5-44F6-B714-348F73E602B6/SQLEXPR_x64_ENU.exe'),
       '', False, False);
@@ -671,7 +680,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=57473
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL12.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(12, 0, 6024, 0)) < 0) then begin
     Dependency_Add('sql2014express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2014 Service Pack 3 Express',
       Dependency_String('https://download.microsoft.com/download/3/9/F/39F968FA-DEBB-4960-8F9E-0E7BB3035959/SQLEXPR32_x86_ENU.exe', 'https://download.microsoft.com/download/3/9/F/39F968FA-DEBB-4960-8F9E-0E7BB3035959/SQLEXPR_x64_ENU.exe', 'https://download.microsoft.com/download/3/9/F/39F968FA-DEBB-4960-8F9E-0E7BB3035959/SQLEXPR_x64_ENU.exe'),
       '', False, False);
@@ -686,7 +695,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=103447
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL13.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(13, 0, 6404, 1)) < 0) then begin
     Dependency_Add('sql2016express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2016 Service Pack 3 Express',
       'https://download.microsoft.com/download/f/a/8/fa83d147-63d1-449c-b22d-5fef9bd5bb46/SQLServer2016-SSEI-Expr.exe',
       '', False, False);
@@ -701,7 +710,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=55994
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL14.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(14, 0, 0, 0)) < 0) then begin
     Dependency_Add('sql2017express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2017 Express',
       'https://download.microsoft.com/download/5/E/9/5E9B18CC-8FD5-467E-B5BF-BADE39C51F73/SQLServer2017-SSEI-Expr.exe',
       '', False, False);
@@ -716,7 +725,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=101064
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL15.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(15, 0, 0, 0)) < 0) then begin
     Dependency_Add('sql2019express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2019 Express',
       'https://download.microsoft.com/download/7/f/8/7f8a9c43-8c8a-4f7c-9f92-83c18d96b681/SQL2019-SSEI-Expr.exe',
       '', False, False);
@@ -731,7 +740,7 @@ begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=104781
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(16, 0, 1000, 6)) < 0) then begin
     Dependency_Add('sql2022express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2022 Express',
       'https://go.microsoft.com/fwlink/p/?linkid=2216019',
       '', False, False);
@@ -746,7 +755,7 @@ begin
   // https://www.microsoft.com/en-us/sql-server/sql-server-downloads
   if not RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL17.MSSQLSERVER\MSSQLServer\CurrentVersion', 'CurrentVersion', Version) or not StrToVersion(Version, PackedVersion) or (ComparePackedVersion(PackedVersion, PackVersionComponents(17, 0, 1000, 7)) < 0) then begin
     Dependency_Add('sql2025express' + Dependency_ArchSuffix + '.exe',
-      '/QS /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
+      Dependency_PassiveOrQuiet('/QS', '/Q') + ' /IACCEPTSQLSERVERLICENSETERMS /ACTION=INSTALL /FEATURES=SQL /INSTANCENAME=MSSQLSERVER',
       'SQL Server 2025 Express',
       'https://download.microsoft.com/download/7ab8f535-7eb8-4b16-82eb-eca0fa2d38f3/SQL2025-SSEI-Expr.exe',
       '', False, False);
@@ -906,7 +915,7 @@ begin
   // https://www.python.org/downloads/windows/
   if not Dependency_IsPythonInstalled(Minor + Dependency_String('-32', '', '-arm64')) then begin
     Dependency_Add('python' + Minor + Dependency_ArchSuffix + '.exe',
-      '/passive InstallAllUsers=1 PrependPath=1',
+      Dependency_PassiveOrQuiet('/passive', '/quiet') + ' InstallAllUsers=1 PrependPath=1',
       'Python ' + Minor + Dependency_ArchTitle,
       URL,
       '', False, False);
@@ -920,7 +929,7 @@ begin
   // https://github.com/PowerShell/PowerShell/releases
   if not FileExists(ExpandConstant(Dependency_String('{commonpf32}', '{commonpf64}', '{commonpf64}')) + '\PowerShell\7\pwsh.exe') then begin
     Dependency_Add('powershell7' + Dependency_ArchSuffix + '.msi',
-      '/passive /norestart',
+      Dependency_PassiveOrQuiet('/passive', '/quiet') + ' /norestart',
       'PowerShell 7.6.2' + Dependency_ArchTitle,
       Dependency_String('https://github.com/PowerShell/PowerShell/releases/download/v7.6.2/PowerShell-7.6.2-win-x86.msi', 'https://github.com/PowerShell/PowerShell/releases/download/v7.6.2/PowerShell-7.6.2-win-x64.msi', 'https://github.com/PowerShell/PowerShell/releases/download/v7.6.2/PowerShell-7.6.2-win-arm64.msi'),
       '', False, False);

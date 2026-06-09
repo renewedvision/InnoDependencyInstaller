@@ -76,6 +76,8 @@ Dependency_Components := ''; // disable component gating again
 
 `Dependency_Components` accepts the same expression syntax as Inno's [Components](https://jrsoftware.org/ishelp/index.php?topic=scriptfunctions) parameter (e.g. `'feature1 or feature2'`).
 
+When your setup runs silently (`/SILENT` or `/VERYSILENT`), the built-in dependencies are installed fully silently as well instead of showing their own progress UI.
+
 ## Dependencies
 
 * .NET
