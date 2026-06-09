@@ -30,7 +30,6 @@ jobs:
 
           # Read the current CodeDependencies.iss file
           $issContent = Get-Content -Path "CodeDependencies.iss" -Raw
-          $readmeContent = Get-Content -Path "README.md" -Raw
 
           # Fetch the releases index to get currently supported versions
           Write-Host "Fetching .NET releases index..."
@@ -100,49 +99,6 @@ jobs:
                 $updatesFound = $true
                 $updateSummary += "$major.0.$latestPatch"
 
-                # Get download URLs for windows runtimes with null checks
-                $runtimeFiles = @()
-                $aspNetFiles = @()
-                $desktopFiles = @()
-                
-                if ($latestRelease.runtime -and $latestRelease.runtime.files) {
-                  $runtimeFiles = $latestRelease.runtime.files | Where-Object { $_.name -match "win-(x86|x64|arm64)\.exe$" }
-                } else {
-                  Write-Warning ".NET $channel runtime files not found in API response"
-                }
-
-                if ($latestRelease.'aspnetcore-runtime' -and $latestRelease.'aspnetcore-runtime'.files) {
-                  $aspNetFiles = $latestRelease.'aspnetcore-runtime'.files | Where-Object { $_.name -match "win-(x86|x64|arm64)\.exe$" }
-                } else {
-                  Write-Warning ".NET $channel ASP.NET Core runtime files not found in API response"
-                }
-
-                if ($latestRelease.'windowsdesktop' -and $latestRelease.'windowsdesktop'.files) {
-                  $desktopFiles = $latestRelease.'windowsdesktop'.files | Where-Object { $_.name -match "win-(x86|x64|arm64)\.exe$" }
-                } else {
-                  Write-Warning ".NET $channel Windows Desktop runtime files not found in API response"
-                }
-
-                $runtimeX86 = ($runtimeFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
-                $runtimeX64 = ($runtimeFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
-                $runtimeArm64 = ($runtimeFiles | Where-Object { $_.name -match "win-arm64\.exe$" }).url
-                $aspNetX86 = ($aspNetFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
-                $aspNetX64 = ($aspNetFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
-                $aspNetArm64 = ($aspNetFiles | Where-Object { $_.name -match "win-arm64\.exe$" }).url
-                $desktopX86 = ($desktopFiles | Where-Object { $_.name -match "win-x86\.exe$" }).url
-                $desktopX64 = ($desktopFiles | Where-Object { $_.name -match "win-x64\.exe$" }).url
-                $desktopArm64 = ($desktopFiles | Where-Object { $_.name -match "win-arm64\.exe$" }).url
-
-                Write-Host "Runtime x86: $runtimeX86"
-                Write-Host "Runtime x64: $runtimeX64"
-                Write-Host "Runtime arm64: $runtimeArm64"
-                Write-Host "ASP.NET x86: $aspNetX86"
-                Write-Host "ASP.NET x64: $aspNetX64"
-                Write-Host "ASP.NET arm64: $aspNetArm64"
-                Write-Host "Desktop x86: $desktopX86"
-                Write-Host "Desktop x64: $desktopX64"
-                Write-Host "Desktop arm64: $desktopArm64"
-
                 # Update version checks - Runtime
                 $issContent = $issContent -replace `
                   "(Dependency_IsNetCoreInstalled\('Microsoft\.NETCore\.App',\s*$major,\s*0,\s*)$currentPatch(\))", `
@@ -169,85 +125,8 @@ jobs:
                   "('\.NET Desktop Runtime $major\.0\.)$currentPatch(')", `
                   "`${1}$latestPatch`${2}"
 
-                # Update URLs if we have them
-                if ($runtimeX86 -and $runtimeX64) {
-                  $issContent = $issContent -replace `
-                    "https://[^']+dotnet-runtime-$major\.0\.$currentPatch-win-x86\.exe", `
-                    $runtimeX86
-                  $issContent = $issContent -replace `
-                    "https://[^']+dotnet-runtime-$major\.0\.$currentPatch-win-x64\.exe", `
-                    $runtimeX64
-                }
-                if ($runtimeArm64) {
-                  $issContent = $issContent -replace `
-                    "https://[^']+dotnet-runtime-$major\.0\.$currentPatch-win-arm64\.exe", `
-                    $runtimeArm64
-                }
-
-                if ($aspNetX86 -and $aspNetX64) {
-                  $issContent = $issContent -replace `
-                    "https://[^']+aspnetcore-runtime-$major\.0\.$currentPatch-win-x86\.exe", `
-                    $aspNetX86
-                  $issContent = $issContent -replace `
-                    "https://[^']+aspnetcore-runtime-$major\.0\.$currentPatch-win-x64\.exe", `
-                    $aspNetX64
-                }
-                if ($aspNetArm64) {
-                  $issContent = $issContent -replace `
-                    "https://[^']+aspnetcore-runtime-$major\.0\.$currentPatch-win-arm64\.exe", `
-                    $aspNetArm64
-                }
-
-                if ($desktopX86 -and $desktopX64) {
-                  $issContent = $issContent -replace `
-                    "https://[^']+windowsdesktop-runtime-$major\.0\.$currentPatch-win-x86\.exe", `
-                    $desktopX86
-                  $issContent = $issContent -replace `
-                    "https://[^']+windowsdesktop-runtime-$major\.0\.$currentPatch-win-x64\.exe", `
-                    $desktopX64
-                }
-                if ($desktopArm64) {
-                  $issContent = $issContent -replace `
-                    "https://[^']+windowsdesktop-runtime-$major\.0\.$currentPatch-win-arm64\.exe", `
-                    $desktopArm64
-                }
-
               } else {
                 Write-Host ".NET $major.0 is up to date"
-              }
-
-              # Always ensure README has the correct entry for this supported version
-              # Use the current patch version (either updated or existing)
-              $currentVersionForReadme = if ($latestPatch -gt $currentPatch) { $latestPatch } else { $currentPatch }
-              $readmeVersionEntry = "`n    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)"
-              # Pattern matches the entire line including any leading whitespace after a newline
-              $readmeVersionPattern = "(\r?\n)\s*\* \.NET $major\.0(\.\d+)? \(Runtime, ASP\.NET, Desktop\)"
-              
-              if ($readmeContent -match $readmeVersionPattern) {
-                # Entry exists - update it to ensure correct formatting and version
-                $readmeContent = $readmeContent -replace $readmeVersionPattern, $readmeVersionEntry
-                Write-Host "Updated README.md entry for .NET $major.0.$currentVersionForReadme"
-              } else {
-                # Entry doesn't exist - add it after the last .NET X.0 entry, or after .NET Framework 4.8.1
-                # First try to find the last .NET X.0 entry (e.g., "    * .NET 8.0.22 (Runtime, ASP.NET, Desktop)")
-                $lastDotNetPattern = "(\* \.NET \d+\.0\.\d+ \(Runtime, ASP\.NET, Desktop\))(\r?\n)"
-                $matches = [regex]::Matches($readmeContent, $lastDotNetPattern)
-                if ($matches.Count -gt 0) {
-                  # Insert after the last .NET entry
-                  $lastMatch = $matches[$matches.Count - 1]
-                  $insertPattern = [regex]::Escape($lastMatch.Groups[1].Value) + "(\r?\n)"
-                  $readmeContent = $readmeContent -replace $insertPattern, "`$0    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)`$1"
-                  Write-Host "Added README.md entry for .NET $major.0.$currentVersionForReadme (after existing .NET entry)"
-                  $updatesFound = $true
-                } else {
-                  # No .NET X.0 entries exist, insert after .NET Framework 4.8.1
-                  $insertPattern = "(\* \.NET Framework 4\.8\.1)(\r?\n)"
-                  if ($readmeContent -match $insertPattern) {
-                    $readmeContent = $readmeContent -replace $insertPattern, "`$1`$2    * .NET $major.0.$currentVersionForReadme (Runtime, ASP.NET, Desktop)`$2"
-                    Write-Host "Added README.md entry for .NET $major.0.$currentVersionForReadme (after .NET Framework 4.8.1)"
-                    $updatesFound = $true
-                  }
-                }
               }
             } else {
               Write-Host ".NET $major.0 not found in CodeDependencies.iss - may need to be added"
@@ -257,7 +136,6 @@ jobs:
           if ($updatesFound) {
             # Write the updated content back to the files
             [System.IO.File]::WriteAllText("CodeDependencies.iss", $issContent)
-            [System.IO.File]::WriteAllText("README.md", $readmeContent)
 
             # Set outputs for the next step
             $summaryText = $updateSummary -join ", "
