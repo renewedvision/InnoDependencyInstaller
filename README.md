@@ -130,4 +130,4 @@ Thanks to the community for sharing many fixes and improvements. To contribute p
 
 ## License
 
-[The Code Project Open License (CPOL) 1.02](https://github.com/DomGries/InnoDependencyInstaller/blob/master/LICENSE.md)
+[MIT License](https://github.com/DomGries/InnoDependencyInstaller/blob/master/LICENSE.md)
