@@ -902,6 +902,30 @@ begin
   end;
 end;
 
+// the Windows App Runtime ships per channel side-by-side; apps need the channel they were built against
+function Dependency_IsWinAppRuntimeInstalled(const Channel: String): Boolean;
+var
+  ResultCode: Integer;
+  Output: TExecOutput;
+begin
+  Result := ExecAndCaptureOutput('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "exit [int](-not [bool](Get-AppxPackage -AllUsers Microsoft.WindowsAppRuntime.' + Channel + '))"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) and (ResultCode = 0);
+end;
+
+procedure Dependency_AddWinAppRuntime(const Channel, URL: String);
+begin
+  // https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
+  if not Dependency_IsWinAppRuntimeInstalled(Channel) then begin
+    Dependency_Add('windowsappruntime' + Channel + Dependency_ArchSuffix + '.exe',
+      '--quiet',
+      'Windows App Runtime ' + Channel + Dependency_ArchTitle,
+      URL,
+      '', False, False);
+  end;
+end;
+
+procedure Dependency_AddWinAppRuntime20; begin Dependency_AddWinAppRuntime('2.0', Dependency_String('https://aka.ms/windowsappsdk/2.0/2.0.1/windowsappruntimeinstall-x86.exe', 'https://aka.ms/windowsappsdk/2.0/2.0.1/windowsappruntimeinstall-x64.exe', 'https://aka.ms/windowsappsdk/2.0/2.0.1/windowsappruntimeinstall-arm64.exe')); end;
+procedure Dependency_AddWinAppRuntime21; begin Dependency_AddWinAppRuntime('2.1', Dependency_String('https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-x86.exe', 'https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-x64.exe', 'https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-arm64.exe')); end;
+
 function Dependency_GetJavaMajor: Integer;
 var
   JavaExe, Line: String;

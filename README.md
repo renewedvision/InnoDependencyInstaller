@@ -115,6 +115,9 @@ Dependency_Components := ''; // disable component gating again
 * Visual Studio 2010 Tools for Office Runtime (VSTO)
 * DirectX End-User Runtime
 * WebView2 Runtime
+* WinUI 3
+    * Windows App SDK Runtime 2.0
+    * Windows App SDK Runtime 2.1
 * Java
     * OpenJDK 8 — Eclipse Temurin (x86/x64)
     * OpenJDK 11, 17, 21, 25 — Microsoft Build of OpenJDK (x64/arm64)
