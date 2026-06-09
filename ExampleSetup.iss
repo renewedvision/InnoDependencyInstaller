@@ -136,5 +136,7 @@ begin
   Dependency_AddJava21;
   Dependency_AddJava25;
 
+  Dependency_AddPython313;
+
   Result := True;
 end;

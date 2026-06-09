@@ -983,6 +983,27 @@ procedure Dependency_AddJava17; begin Dependency_AddJava(17, Dependency_String('
 procedure Dependency_AddJava21; begin Dependency_AddJava(21, Dependency_String('', 'https://aka.ms/download-jdk/microsoft-jdk-21-windows-x64.msi', 'https://aka.ms/download-jdk/microsoft-jdk-21-windows-aarch64.msi')); end;
 procedure Dependency_AddJava25; begin Dependency_AddJava(25, Dependency_String('', 'https://aka.ms/download-jdk/microsoft-jdk-25-windows-x64.msi', 'https://aka.ms/download-jdk/microsoft-jdk-25-windows-aarch64.msi')); end;
 
+function Dependency_IsPythonInstalled(const Tag: String): Boolean;
+begin
+  Result := RegKeyExists(HKLM, 'Software\Python\PythonCore\' + Tag + '\InstallPath')
+    or RegKeyExists(HKLM, 'Software\Wow6432Node\Python\PythonCore\' + Tag + '\InstallPath')
+    or RegKeyExists(HKCU, 'Software\Python\PythonCore\' + Tag + '\InstallPath');
+end;
+
+procedure Dependency_AddPython(const Minor, URL: String);
+begin
+  // https://www.python.org/downloads/windows/
+  if not Dependency_IsPythonInstalled(Minor + Dependency_String('-32', '', '-arm64')) then begin
+    Dependency_Add('python' + Minor + Dependency_ArchSuffix + '.exe',
+      '/passive InstallAllUsers=1 PrependPath=1',
+      'Python ' + Minor + Dependency_ArchTitle,
+      URL,
+      '', False, False);
+  end;
+end;
+
+procedure Dependency_AddPython313; begin Dependency_AddPython('3.13', Dependency_String('https://www.python.org/ftp/python/3.13.13/python-3.13.13.exe', 'https://www.python.org/ftp/python/3.13.13/python-3.13.13-amd64.exe', 'https://www.python.org/ftp/python/3.13.13/python-3.13.13-arm64.exe')); end;
+
 [Files]
 #ifdef Dependency_Path_DirectX
 Source: "{#Dependency_Path_DirectX}dxwebsetup.exe"; Flags: dontcopy noencryption
