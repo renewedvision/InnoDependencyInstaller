@@ -1,5 +1,8 @@
 # Inno Setup Dependency Installer
 
+[![Compile Check](https://github.com/DomGries/InnoDependencyInstaller/actions/workflows/compile-check.yml/badge.svg)](https://github.com/DomGries/InnoDependencyInstaller/actions/workflows/compile-check.yml)
+[![Install Test](https://github.com/DomGries/InnoDependencyInstaller/actions/workflows/install-test.yml/badge.svg)](https://github.com/DomGries/InnoDependencyInstaller/actions/workflows/install-test.yml)
+
 ![Inno Setup Dependency Installer](https://user-images.githubusercontent.com/341158/122873592-3e2e9d80-d332-11eb-8055-8a4c6064ac4e.gif)
 
 **Inno Setup Dependency Installer** automatically downloads and installs any dependency such as .NET, Visual C++, SQL Server or WebView2 during your application's installation. One line per dependency is all it takes — missing ones are installed before your application, anything already present is skipped. More than 60 dependencies are [built in](#supported-dependencies) and you can [add your own](#adding-your-own-dependency).
