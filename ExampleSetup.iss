@@ -1,9 +1,5 @@
 ; https://github.com/DomGries/InnoDependencyInstaller
 
-
-; requires dxwebsetup.exe (see CodeDependencies.iss)
-;#define public Dependency_Path_DirectX "dependencies\"
-
 #include "CodeDependencies.iss"
 
 [Setup]
@@ -108,6 +104,7 @@ begin
   //Dependency_ForceX86 := False; // disable forced 32-bit install again
   Dependency_AddVC14;
 
+  //ExtractTemporaryFile('dxwebsetup.exe'); // optional: bundle dxwebsetup.exe via [Files] to skip its download
   //Dependency_AddDirectX;
 
   Dependency_AddSql2008Express;

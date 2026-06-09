@@ -661,9 +661,6 @@ procedure Dependency_AddVC2015To2022; begin Dependency_AddVC14; end;
 
 procedure Dependency_AddDirectX;
 begin
-#ifdef Dependency_Files_DirectX
-  ExtractTemporaryFile('dxwebsetup.exe');
-#endif
   // https://www.microsoft.com/en-us/download/details.aspx?id=35
   Dependency_Add('dxwebsetup.exe',
     '/q',
@@ -990,8 +987,3 @@ begin
       '', False, False);
   end;
 end;
-
-[Files]
-#ifdef Dependency_Path_DirectX
-Source: "{#Dependency_Path_DirectX}dxwebsetup.exe"; Flags: dontcopy noencryption
-#endif
