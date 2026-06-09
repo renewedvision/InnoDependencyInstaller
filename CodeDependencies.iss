@@ -255,30 +255,49 @@ begin
   end;
 end;
 
-function Dependency_IsNetCoreInstalled(Runtime: String; Major, Minor, Revision: Word): Boolean;
 var
-  Path: String;
+  Dependency_NetCoreRuntimesArch: String;
+  Dependency_NetCoreRuntimes: TArrayOfString;
+
+procedure Dependency_ListNetCoreRuntimes;
+var
+  Arch, Path: String;
   ResultCode: Integer;
   Output: TExecOutput;
+begin
+  Arch := Dependency_String('x86', 'x64', 'arm64');
+  if Dependency_NetCoreRuntimesArch = Arch then begin
+    exit;
+  end;
+  Dependency_NetCoreRuntimesArch := Arch;
+  SetArrayLength(Dependency_NetCoreRuntimes, 0);
+
+  if not RegQueryStringValue(HKLM32, 'SOFTWARE\dotnet\Setup\InstalledVersions\' + Arch, 'InstallLocation', Path) or not FileExists(Path + 'dotnet.exe') then begin
+    Path := ExpandConstant(Dependency_String('{commonpf32}', '{commonpf64}', '{commonpf64}')) + '\dotnet\';
+  end;
+  if ExecAndCaptureOutput(Path + 'dotnet.exe', '--list-runtimes', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) and (ResultCode = 0) then begin
+    Dependency_NetCoreRuntimes := Output.StdOut;
+  end;
+end;
+
+function Dependency_IsNetCoreInstalled(Runtime: String; Major, Minor, Revision: Word): Boolean;
+var
   LineIndex: Integer;
   LineParts: TArrayOfString;
   PackedVersion: Int64;
   LineMajor, LineMinor, LineRevision, LineBuild: Word;
 begin
-  if not RegQueryStringValue(HKLM32, 'SOFTWARE\dotnet\Setup\InstalledVersions\' + Dependency_String('x86', 'x64', 'arm64'), 'InstallLocation', Path) or not FileExists(Path + 'dotnet.exe') then begin
-    Path := ExpandConstant(Dependency_String('{commonpf32}', '{commonpf64}', '{commonpf64}')) + '\dotnet\';
-  end;
-  if ExecAndCaptureOutput(Path + 'dotnet.exe', '--list-runtimes', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) and (ResultCode = 0) then begin
-    for LineIndex := 0 to Length(Output.StdOut) - 1 do begin
-      LineParts := StringSplit(Trim(Output.StdOut[LineIndex]), [' '], stExcludeEmpty);
+  Dependency_ListNetCoreRuntimes;
 
-      if (Length(LineParts) > 1) and (Lowercase(LineParts[0]) = Lowercase(Runtime)) and StrToVersion(LineParts[1], PackedVersion) then begin
-        UnpackVersionComponents(PackedVersion, LineMajor, LineMinor, LineRevision, LineBuild);
+  for LineIndex := 0 to Length(Dependency_NetCoreRuntimes) - 1 do begin
+    LineParts := StringSplit(Trim(Dependency_NetCoreRuntimes[LineIndex]), [' '], stExcludeEmpty);
 
-        if (LineMajor = Major) and (LineMinor = Minor) and (LineRevision >= Revision) then begin
-          Result := True;
-          exit;
-        end;
+    if (Length(LineParts) > 1) and (Lowercase(LineParts[0]) = Lowercase(Runtime)) and StrToVersion(LineParts[1], PackedVersion) then begin
+      UnpackVersionComponents(PackedVersion, LineMajor, LineMinor, LineRevision, LineBuild);
+
+      if (LineMajor = Major) and (LineMinor = Minor) and (LineRevision >= Revision) then begin
+        Result := True;
+        exit;
       end;
     end;
   end;
@@ -822,13 +841,30 @@ begin
   end;
 end;
 
+var
+  Dependency_WinAppRuntimePackages: TArrayOfString;
+  Dependency_WinAppRuntimePackagesListed: Boolean;
+
 // the Windows App Runtime ships per channel side-by-side; apps need the channel they were built against
 function Dependency_IsWinAppRuntimeInstalled(const Channel: String): Boolean;
 var
-  ResultCode: Integer;
+  ResultCode, LineIndex: Integer;
   Output: TExecOutput;
 begin
-  Result := ExecAndCaptureOutput('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "exit [int](-not [bool](Get-AppxPackage -AllUsers Microsoft.WindowsAppRuntime.' + Channel + '))"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) and (ResultCode = 0);
+  if not Dependency_WinAppRuntimePackagesListed then begin
+    Dependency_WinAppRuntimePackagesListed := True;
+    if ExecAndCaptureOutput('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "(Get-AppxPackage -AllUsers Microsoft.WindowsAppRuntime.*).Name"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) and (ResultCode = 0) then begin
+      Dependency_WinAppRuntimePackages := Output.StdOut;
+    end;
+  end;
+
+  for LineIndex := 0 to Length(Dependency_WinAppRuntimePackages) - 1 do begin
+    if Trim(Dependency_WinAppRuntimePackages[LineIndex]) = 'Microsoft.WindowsAppRuntime.' + Channel then begin
+      Result := True;
+      exit;
+    end;
+  end;
+  Result := False;
 end;
 
 procedure Dependency_AddWinAppRuntime(const Channel, URL: String);
@@ -846,6 +882,10 @@ end;
 procedure Dependency_AddWinAppRuntime20; begin Dependency_AddWinAppRuntime('2.0', Dependency_String('https://aka.ms/windowsappsdk/2.0/2.0.1/windowsappruntimeinstall-x86.exe', 'https://aka.ms/windowsappsdk/2.0/2.0.1/windowsappruntimeinstall-x64.exe', 'https://aka.ms/windowsappsdk/2.0/2.0.1/windowsappruntimeinstall-arm64.exe')); end;
 procedure Dependency_AddWinAppRuntime21; begin Dependency_AddWinAppRuntime('2.1', Dependency_String('https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-x86.exe', 'https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-x64.exe', 'https://aka.ms/windowsappsdk/2.1/2.1.3/windowsappruntimeinstall-arm64.exe')); end;
 
+var
+  Dependency_JavaMajor: Integer;
+  Dependency_JavaMajorDetected: Boolean;
+
 function Dependency_GetJavaMajor: Integer;
 var
   JavaExe, Line: String;
@@ -853,35 +893,38 @@ var
   Output: TExecOutput;
   Parts: TArrayOfString;
 begin
-  Result := 0;
+  if not Dependency_JavaMajorDetected then begin
+    Dependency_JavaMajorDetected := True;
+    Dependency_JavaMajor := 0;
 
-  // detect whichever java.exe an app would actually use: JAVA_HOME, else PATH
-  JavaExe := GetEnv('JAVA_HOME');
-  if (JavaExe <> '') and FileExists(JavaExe + '\bin\java.exe') then begin
-    JavaExe := JavaExe + '\bin\java.exe';
-  end else begin
-    JavaExe := 'java.exe';
-  end;
+    // detect whichever java.exe an app would actually use: JAVA_HOME, else PATH
+    JavaExe := GetEnv('JAVA_HOME');
+    if (JavaExe <> '') and FileExists(JavaExe + '\bin\java.exe') then begin
+      JavaExe := JavaExe + '\bin\java.exe';
+    end else begin
+      JavaExe := 'java.exe';
+    end;
 
-  // `java -version` prints to stderr
-  if not ExecAndCaptureOutput(JavaExe, '-version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) or (ResultCode <> 0) then begin
-    exit;
-  end;
-
-  for LineIndex := 0 to Length(Output.StdErr) - 1 do begin
-    Line := Output.StdErr[LineIndex];
-    QuotePos := Pos('version "', Line);
-    if QuotePos > 0 then begin
-      Parts := StringSplit(Copy(Line, QuotePos + 9, Length(Line)), ['.'], stExcludeEmpty);
-      if Length(Parts) > 0 then begin
-        Result := StrToIntDef(Parts[0], 0);
-        if (Result = 1) and (Length(Parts) > 1) then begin
-          Result := StrToIntDef(Parts[1], 0); // legacy "1.8.0_x" -> 8
+    // `java -version` prints to stderr
+    if ExecAndCaptureOutput(JavaExe, '-version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode, Output) and (ResultCode = 0) then begin
+      for LineIndex := 0 to Length(Output.StdErr) - 1 do begin
+        Line := Output.StdErr[LineIndex];
+        QuotePos := Pos('version "', Line);
+        if QuotePos > 0 then begin
+          Parts := StringSplit(Copy(Line, QuotePos + 9, Length(Line)), ['.'], stExcludeEmpty);
+          if Length(Parts) > 0 then begin
+            Dependency_JavaMajor := StrToIntDef(Parts[0], 0);
+            if (Dependency_JavaMajor = 1) and (Length(Parts) > 1) then begin
+              Dependency_JavaMajor := StrToIntDef(Parts[1], 0); // legacy "1.8.0_x" -> 8
+            end;
+          end;
+          break;
         end;
       end;
-      exit;
     end;
   end;
+
+  Result := Dependency_JavaMajor;
 end;
 
 procedure Dependency_AddJava(const Major: Integer; const URL: String);
