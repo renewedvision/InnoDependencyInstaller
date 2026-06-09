@@ -36,8 +36,10 @@ begin
 
   if FileExists(ExpandConstant('{tmp}{\}') + Filename) then begin
     Dependency.URL := '';
+    Log('Dependency queued (already in tmp): ' + Title);
   end else begin
     Dependency.URL := URL;
+    Log('Dependency queued for download: ' + Title);
   end;
 
   Dependency.Checksum := Checksum;
@@ -84,6 +86,7 @@ begin
             Dependency_DownloadPage.Download;
           except
             if Dependency_DownloadPage.AbortedByUser then begin
+              Log('Download aborted by user: ' + Dependency_List[DependencyIndex].Title);
               Result := Dependency_List[DependencyIndex].Title;
               DependencyIndex := DependencyCount;
             end else begin
@@ -113,6 +116,7 @@ begin
       ActiveIndex := 0;
       for DependencyIndex := 0 to DependencyCount - 1 do begin
         if not Dependency_IsEntryActive(Dependency_List[DependencyIndex]) then begin
+          Log('Dependency skipped (component not selected): ' + Dependency_List[DependencyIndex].Title);
           continue;
         end;
         ActiveIndex := ActiveIndex + 1;
@@ -126,6 +130,7 @@ begin
 #else
           if ShellExec('', ExpandConstant('{tmp}{\}') + Dependency_List[DependencyIndex].Filename, Dependency_List[DependencyIndex].Parameters, '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then begin
 #endif
+            Log('Dependency exit code ' + IntToStr(ResultCode) + ': ' + Dependency_List[DependencyIndex].Title);
             if Dependency_List[DependencyIndex].RestartAfter then begin
               if DependencyIndex = DependencyCount - 1 then begin
                 Dependency_NeedToRestart := True;
@@ -165,6 +170,7 @@ begin
       end;
 
       if NeedsRestart then begin
+        Log('Dependency requires restart: registering RunOnce to resume setup');
         TempValue := '"' + ExpandConstant('{srcexe}') + '" /restart=1 /LANG="' + ExpandConstant('{language}') + '" /DIR="' + WizardDirValue + '" /GROUP="' + WizardGroupValue + '" /TYPE="' + WizardSetupType(False) + '" /COMPONENTS="' + WizardSelectedComponents(False) + '" /TASKS="' + WizardSelectedTasks(False) + '"';
         if WizardNoIcons then begin
           TempValue := TempValue + ' /NOICONS';
