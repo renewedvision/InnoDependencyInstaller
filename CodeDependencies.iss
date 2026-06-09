@@ -612,6 +612,22 @@ begin
   end;
 end;
 
+procedure Dependency_AddDotNetHosting(const Major, Patch: Integer; const URL: String);
+begin
+  // https://dotnet.microsoft.com/download/dotnet
+  if not Dependency_IsNetCoreInstalled('Microsoft.AspNetCore.App', Major, 0, Patch) then begin
+    Dependency_Add('dotnet' + IntToStr(Major) + '0hosting.exe',
+      '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
+      'ASP.NET Core ' + IntToStr(Major) + '.0 Hosting Bundle',
+      URL,
+      '', False, False);
+  end;
+end;
+
+procedure Dependency_AddDotNet80Hosting; begin Dependency_AddDotNetHosting(8, 27, 'https://aka.ms/dotnet/8.0/dotnet-hosting-win.exe'); end;
+procedure Dependency_AddDotNet90Hosting; begin Dependency_AddDotNetHosting(9, 16, 'https://aka.ms/dotnet/9.0/dotnet-hosting-win.exe'); end;
+procedure Dependency_AddDotNet100Hosting; begin Dependency_AddDotNetHosting(10, 8, 'https://aka.ms/dotnet/10.0/dotnet-hosting-win.exe'); end;
+
 procedure Dependency_AddVC2005;
 begin
   // https://www.microsoft.com/en-us/download/details.aspx?id=26347

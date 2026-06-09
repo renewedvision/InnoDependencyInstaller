@@ -86,13 +86,16 @@ begin
   //Dependency_AddDotNet70Desktop;
   Dependency_AddDotNet80;
   Dependency_AddDotNet80Asp;
+  Dependency_AddDotNet80Hosting;
   Dependency_AddDotNet80Desktop;
   Dependency_AddDotNet90;
   Dependency_AddDotNet90Asp;
+  Dependency_AddDotNet90Hosting;
   Dependency_AddDotNet90Desktop;
   //Dependency_Components := 'advanced'; // only install next dependencies if the 'advanced' component is selected
   Dependency_AddDotNet100;
   Dependency_AddDotNet100Asp;
+  Dependency_AddDotNet100Hosting;
   Dependency_AddDotNet100Desktop;
   //Dependency_Components := ''; // disable component gating again
 
