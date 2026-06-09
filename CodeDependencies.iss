@@ -1004,6 +1004,18 @@ end;
 
 procedure Dependency_AddPython313; begin Dependency_AddPython('3.13', Dependency_String('https://www.python.org/ftp/python/3.13.13/python-3.13.13.exe', 'https://www.python.org/ftp/python/3.13.13/python-3.13.13-amd64.exe', 'https://www.python.org/ftp/python/3.13.13/python-3.13.13-arm64.exe')); end;
 
+procedure Dependency_AddPowerShell7;
+begin
+  // https://github.com/PowerShell/PowerShell/releases
+  if not FileExists(ExpandConstant(Dependency_String('{commonpf32}', '{commonpf64}', '{commonpf64}')) + '\PowerShell\7\pwsh.exe') then begin
+    Dependency_Add('powershell7' + Dependency_ArchSuffix + '.msi',
+      '/passive /norestart',
+      'PowerShell 7.6.2' + Dependency_ArchTitle,
+      Dependency_String('https://github.com/PowerShell/PowerShell/releases/download/v7.6.2/PowerShell-7.6.2-win-x86.msi', 'https://github.com/PowerShell/PowerShell/releases/download/v7.6.2/PowerShell-7.6.2-win-x64.msi', 'https://github.com/PowerShell/PowerShell/releases/download/v7.6.2/PowerShell-7.6.2-win-arm64.msi'),
+      '', False, False);
+  end;
+end;
+
 [Files]
 #ifdef Dependency_Path_DirectX
 Source: "{#Dependency_Path_DirectX}dxwebsetup.exe"; Flags: dontcopy noencryption

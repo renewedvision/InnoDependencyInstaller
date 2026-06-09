@@ -122,6 +122,7 @@ Dependency_Components := ''; // disable component gating again
     * OpenJDK 8 — Eclipse Temurin (x86/x64)
     * OpenJDK 11, 17, 21, 25 — Microsoft Build of OpenJDK (x64/arm64)
 * Python 3.13 (python.org)
+* PowerShell 7.6
 
 ## Credits
 

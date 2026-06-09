@@ -137,6 +137,7 @@ begin
   Dependency_AddJava25;
 
   Dependency_AddPython313;
+  Dependency_AddPowerShell7;
 
   Result := True;
 end;
